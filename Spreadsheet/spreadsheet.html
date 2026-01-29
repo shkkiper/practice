@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Простая электронная таблица</title>
+    <meta charset="UTF-8">
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        table {
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+        th, td {
+            border: 1px solid #ccc;
+            padding: 8px;
+            min-width: 100px;
+            height: 30px;
+        }
+        th {
+            background-color: #f0f0f0;
+            text-align: center;
+        }
+        td {
+            background-color: white;
+        }
+        .editing {
+            background-color: #e6f7ff;
+        }
+        input {
+            width: 100%;
+            height: 100%;
+            border: none;
+            outline: none;
+            font-size: 14px;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        button {
+            padding: 5px 10px;
+            margin: 0 5px;
+            cursor: pointer;
+        }
+        .add-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 2px 8px;
+            font-size: 16px;
+        }
+        .remove-btn {
+            background-color: #f44336;
+            color: white;
+            border: none;
+            padding: 2px 8px;
+            font-size: 16px;
+        }
+        .cell-header {
+            background-color: #e0e0e0;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <h1>Простая электронная таблица</h1>
+    <div class="controls">
+        <button onclick="addRow()">+ Добавить строку</button>
+        <button onclick="removeRow()">- Удалить строку</button>
+        <button onclick="addColumn()">+ Добавить столбец</button>
+        <button onclick="removeColumn()">- Удалить столбец</button>
+    </div>
+    
+    <table id="spreadsheet"></table>
+    
+    <script>
+        let rows = 3;
+        let cols = 3;
+        let data = {};
+        let editingCell = null;
+
+        function loadData() {
+            const saved = localStorage.getItem('spreadsheetData');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                rows = parsed.rows || rows;
+                cols = parsed.cols || cols;
+                data = parsed.data || {};
+            }
+        }
+
+        function saveData() {
+            const toSave = {
+                rows: rows,
+                cols: cols,
+                data: data
+            };
+            localStorage.setItem('spreadsheetData', JSON.stringify(toSave));
+        }
+
+        function createTable() {
+            const table = document.getElementById('spreadsheet');
+            table.innerHTML = '';
+            
+            let headerRow = '<tr><td class="cell-header"></td>';
+            for (let c = 0; c < cols; c++) {
+                headerRow += `<td class="cell-header">${String.fromCharCode(65 + c)}</td>`;
+            }
+            headerRow += '<td class="cell-header"><button class="add-btn" onclick="addColumn()">+</button></td></tr>';
+            table.innerHTML = headerRow;
+            
+            for (let r = 0; r < rows; r++) {
+                let row = `<tr><td class="cell-header">${r + 1}</td>`;
+                
+                for (let c = 0; c < cols; c++) {
+                    const cellId = `${r}_${c}`;
+                    const value = data[cellId] || '';
+                    row += `<td ondblclick="startEdit(this, '${cellId}')">${value}</td>`;
+                }
+                
+                row += `<td class="cell-header"><button class="add-btn" onclick="addRow(${r + 1})">+</button></td></tr>`;
+                table.innerHTML += row;
+            }
+            
+            let lastRow = '<tr><td class="cell-header"></td>';
+            for (let c = 0; c < cols; c++) {
+                lastRow += `<td class="cell-header"><button class="remove-btn" onclick="removeColumn(${c})">-</button></td>`;
+            }
+            lastRow += '<td class="cell-header"></td></tr>';
+            table.innerHTML += lastRow;
+        }
+
+        function startEdit(cell, cellId) {
+            if (editingCell) {
+                finishEdit();
+            }
+            
+            const value = data[cellId] || '';
+            cell.innerHTML = `<input type="text" value="${value}" onblur="finishEdit('${cellId}', this.value)">`;
+            cell.classList.add('editing');
+            cell.querySelector('input').focus();
+            editingCell = cell;
+        }
+
+        function finishEdit(cellId, newValue) {
+            if (editingCell) {
+                editingCell.classList.remove('editing');
+                if (cellId && newValue !== undefined) {
+                    data[cellId] = newValue;
+                    editingCell.textContent = newValue;
+                    saveData();
+                }
+                editingCell = null;
+            }
+        }
+
+        function addRow(position) {
+            rows++;
+            createTable();
+            saveData();
+        }
+
+        function removeRow() {
+            if (rows <= 1) {
+                alert('Нельзя удалить последнюю строку');
+                return;
+            }
+            
+            let hasData = false;
+            for (let c = 0; c < cols; c++) {
+                const cellId = `${rows - 1}_${c}`;
+                if (data[cellId]) {
+                    hasData = true;
+                    break;
+                }
+            }
+            
+            if (hasData && !confirm('В удаляемой строке есть данные. Удалить?')) {
+                return;
+            }
+            
+            for (let c = 0; c < cols; c++) {
+                delete data[`${rows - 1}_${c}`];
+            }
+            
+            rows--;
+            createTable();
+            saveData();
+        }
+
+        function addColumn() {
+            cols++;
+            createTable();
+            saveData();
+        }
+
+        function removeColumn() {
+            if (cols <= 1) {
+                alert('Нельзя удалить последний столбец');
+                return;
+            }
+            
+            let hasData = false;
+            for (let r = 0; r < rows; r++) {
+                const cellId = `${r}_${cols - 1}`;
+                if (data[cellId]) {
+                    hasData = true;
+                    break;
+                }
+            }
+            
+            if (hasData && !confirm('В удаляемом столбце есть данные. Удалить?')) {
+                return;
+            }
+            
+            for (let r = 0; r < rows; r++) {
+                delete data[`${r}_${cols - 1}`];
+            }
+            
+            cols--;
+            createTable();
+            saveData();
+        }
+
+        loadData();
+        createTable();
+        
+        window.addEventListener('beforeunload', saveData);
+    </script>
+</body>
+</html>

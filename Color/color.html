@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Генератор случайных цветов</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: Arial, sans-serif;
+        }
+        
+        body {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background: #f0f0f0;
+            padding: 20px;
+        }
+        
+        .container {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 400px;
+            width: 100%;
+        }
+        
+        h1 {
+            text-align: center;
+            color: #333;
+            margin-bottom: 25px;
+        }
+        
+        .controls {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .size-control {
+            width: 100%;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+        }
+        
+        input[type="number"] {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 16px;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            background: #344358;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 15px 0;
+        }
+        
+        button:hover {
+            background: #3a5a80;
+        }
+        
+        .square-container {
+            display: flex;
+            justify-content: center;
+            margin: 25px 0;
+        }
+        
+        #colorSquare {
+            width: 200px;
+            height: 200px;
+            background: #3498db;
+            border-radius: 8px;
+            transition: all 0.3s;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Random Color</h1>
+        
+        <div class="controls">
+            <div class="size-control">
+                <label for="widthInput">Ширина:</label>
+                <input type="number" id="widthInput" min="50" max="500" value="200">
+            </div>
+            <div class="size-control">
+                <label for="heightInput">Высота:</label>
+                <input type="number" id="heightInput" min="50" max="500" value="200">
+            </div>
+        </div>
+        
+        <button id="randomColorBtn">Случайный цвет</button>
+        
+        <div class="square-container">
+            <div id="colorSquare"></div>
+        </div>
+    </div>
+
+    <script>
+        
+        const widthInput = document.getElementById('widthInput');
+        const heightInput = document.getElementById('heightInput');
+        const randomColorBtn = document.getElementById('randomColorBtn');
+        const colorSquare = document.getElementById('colorSquare');
+        
+        function getRandomColor() {
+            return '#' + Math.floor(Math.random() * 16777215).toString(16).padStart(6, '0');
+        }
+        
+        function updateSize() {
+            colorSquare.style.width = widthInput.value + 'px';
+            colorSquare.style.height = heightInput.value + 'px';
+        }
+        
+        function updateColor(color) {
+            colorSquare.style.backgroundColor = color;
+        }
+    
+        widthInput.addEventListener('input', updateSize);
+        heightInput.addEventListener('input', updateSize);
+        
+        randomColorBtn.addEventListener('click', function() {
+            const newColor = getRandomColor();
+            updateColor(newColor);
+        });
+        
+        colorSquare.addEventListener('dblclick', function() {
+            const newColor = getRandomColor();
+            updateColor(newColor);
+        });
+        
+        updateSize();
+    </script>
+</body>
+</html>

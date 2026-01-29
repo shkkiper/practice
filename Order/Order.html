@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Оформление заказа</title>
+    <!-- Подключаем API Яндекс.Карт -->
+    <script src="https://api-maps.yandex.ru/2.1/?apikey=2e17cc03-453e-475c-b8ef-48624dedb7e7&lang=ru_RU" type="text/javascript"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+        }
+        
+        .form-group {
+            margin-bottom: 15px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+        }
+        
+        input, textarea {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            box-sizing: border-box;
+        }
+        
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        
+        .required:after {
+            content: " *";
+            color: red;
+        }
+        
+        .char-counter {
+            font-size: 12px;
+            color: #666;
+            text-align: right;
+        }
+        
+        .char-counter.error {
+            color: red;
+        }
+        
+        #map {
+            width: 100%;
+            height: 300px;
+            border: 1px solid #ccc;
+            margin-bottom: 10px;
+        }
+        
+        .pin-info {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 10px;
+        }
+        
+        button {
+            background: #4CAF50;
+            color: white;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            margin-top: 10px;
+        }
+        
+        button:hover {
+            background: #45a049;
+        }
+        
+        #result {
+            margin-top: 15px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        
+        .success {
+            background: #dff0d8;
+            color: #3c763d;
+            border: 1px solid #d6e9c6;
+        }
+        
+        .error {
+            background: #f2dede;
+            color: #a94442;
+            border: 1px solid #ebccd1;
+        }
+        
+        .error-field {
+            border-color: red !important;
+        }
+        
+        .error-list {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Оформление заказа</h1>
+    
+    <form id="orderForm">
+        <div class="form-group">
+            <label for="fullName" class="required">ФИО</label>
+            <input type="text" id="fullName">
+        </div>
+        
+        <div class="form-group">
+            <label for="phone" class="required">Телефон</label>
+            <input type="tel" id="phone">
+            <small>Только цифры</small>
+        </div>
+        
+        <div class="form-group">
+            <label for="email">Email</label>
+            <input type="email" id="email">
+            <small>Должен содержать @</small>
+        </div>
+        
+        <div class="form-group">
+            <label>Адрес доставки</label>
+            <div id="map"></div>
+            <div class="pin-info" id="pinInfo">Кликните на карте для выбора адреса доставки</div>
+        </div>
+        
+        <div class="form-group">
+            <label for="comment">Комментарий к заказу</label>
+            <textarea id="comment"></textarea>
+            <div class="char-counter" id="charCounter">0/500</div>
+        </div>
+        
+        <button type="submit">Отправить</button>
+    </form>
+    
+    <div id="result"></div>
+
+    <script>
+        
+        let map, placemark;
+        let selectedCoords = null;
+        
+        ymaps.ready(init);
+        
+        function init() {
+            map = new ymaps.Map("map", {
+                center: [55.76, 37.64], 
+                zoom: 10
+            });
+            map.events.add('click', function(e) {
+                const coords = e.get('coords');
+                
+                if (placemark) {
+                    map.geoObjects.remove(placemark);
+                }
+                
+                placemark = new ymaps.Placemark(coords, {
+                    balloonContent: `Координаты: ${coords[0].toFixed(5)}, ${coords[1].toFixed(5)}`
+                });
+                
+                map.geoObjects.add(placemark);
+                
+                placemark.balloon.open();
+                
+                selectedCoords = coords;
+                
+                document.getElementById('pinInfo').textContent = 
+                    `Выбрана точка доставки. Координаты: ${coords[0].toFixed(5)}, ${coords[1].toFixed(5)}`;
+            });
+        }
+        
+        document.getElementById('comment').addEventListener('input', function() {
+            const length = this.value.length;
+            const counter = document.getElementById('charCounter');
+            counter.textContent = `${length}/500`;
+            
+            if (length > 500) {
+                counter.classList.add('error');
+            } else {
+                counter.classList.remove('error');
+            }
+        });
+        
+        function validateForm() {
+            const errors = [];
+            
+            document.querySelectorAll('.error-field').forEach(el => {
+                el.classList.remove('error-field');
+            });
+            
+            const fullName = document.getElementById('fullName').value.trim();
+            if (!fullName) {
+                errors.push('Не заполнено поле ФИО');
+                document.getElementById('fullName').classList.add('error-field');
+            }
+            
+            const phone = document.getElementById('phone').value.trim();
+            if (!phone) {
+                errors.push('Не заполнено поле Телефон');
+                document.getElementById('phone').classList.add('error-field');
+            } else if (!/^\d+$/.test(phone)) {
+                errors.push('Телефон должен содержать только числа');
+                document.getElementById('phone').classList.add('error-field');
+            }
+            
+            const email = document.getElementById('email').value.trim();
+            if (email && !email.includes('@')) {
+                errors.push('Email должен содержать символ @');
+                document.getElementById('email').classList.add('error-field');
+            }
+            
+            if (!selectedCoords) {
+                errors.push('Не отмечен адрес доставки на карте');
+            }
+            
+            const comment = document.getElementById('comment').value;
+            if (comment.length > 500) {
+                errors.push('Комментарий не должен превышать 500 символов');
+                document.getElementById('comment').classList.add('error-field');
+            }
+            
+            return errors;
+        }
+        
+        document.getElementById('orderForm').addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            const errors = validateForm();
+            const result = document.getElementById('result');
+            
+            if (errors.length === 0) {
+                result.innerHTML = '<strong>Заказ оформлен!</strong>';
+                result.className = 'success';
+                
+                console.log('Данные заказа:', {
+                    fullName: document.getElementById('fullName').value,
+                    phone: document.getElementById('phone').value,
+                    email: document.getElementById('email').value,
+                    coords: selectedCoords,
+                    comment: document.getElementById('comment').value
+                });
+            } else {
+                let errorHtml = '<strong>Ошибки:</strong><ul class="error-list">';
+                errors.forEach(error => {
+                    errorHtml += `<li>${error}</li>`;
+                });
+                errorHtml += '</ul>';
+                
+                result.innerHTML = errorHtml;
+                result.className = 'error';
+            }
+            
+            result.scrollIntoView({behavior: 'smooth'});
+        });
+        
+        document.getElementById('phone').addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '');
+        });
+    </script>
+</body>
+</html>
